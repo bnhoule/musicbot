@@ -30,7 +30,7 @@ class TestRandomSelection:
 
     def test_exclude_is_honored(self):
         random.seed(1)
-        exclude = {cat: "Song A" for cat in CATEGORIES}
+        exclude = dict.fromkeys(CATEGORIES, "Song A")
         for _ in range(20):
             sel = random_selection(LIBRARY, exclude=exclude)
             assert all(name != "Song A" for name in sel.values())
@@ -38,6 +38,6 @@ class TestRandomSelection:
     def test_exclude_falls_back_when_pool_empty(self):
         # Only one entry and it's excluded — must still return something
         single = {"Only Song": {}}
-        exclude = {cat: "Only Song" for cat in CATEGORIES}
+        exclude = dict.fromkeys(CATEGORIES, "Only Song")
         sel = random_selection(single, exclude=exclude)
         assert all(name == "Only Song" for name in sel.values())

@@ -71,10 +71,7 @@ def trim_and_save(drums_path: Path, trim_sec: float, output_path: Path) -> None:
 
     trim_samples = max(0, int(trim_sec * sr))
 
-    if y.ndim == 1:
-        y_trimmed = y[trim_samples:]
-    else:
-        y_trimmed = y[:, trim_samples:]
+    y_trimmed = y[trim_samples:] if y.ndim == 1 else y[:, trim_samples:]
 
     clip_samples = int(CLIP_DURATION_SEC * sr)
     if y.ndim == 1:
@@ -136,7 +133,7 @@ def detect_madmom_groove(drums_path: Path, raw_path: Path) -> float:
 
     threshold = 0.55 * energies.max()
 
-    for i, (db, e) in enumerate(zip(downbeats, energies)):
+    for i, (db, e) in enumerate(zip(downbeats, energies, strict=True)):
         if e >= threshold:
             following = energies[i:i+3]
             if len(following) >= 2 and all(f >= threshold for f in following):

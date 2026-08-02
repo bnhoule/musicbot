@@ -37,10 +37,7 @@ def get_downbeats(raw_path: str) -> tuple[list[float], float]:
 
     downbeats = beats[beats[:, 1] == 1][:, 0].tolist()
     all_beat_times = beats[:, 0]
-    if len(all_beat_times) > 1:
-        bpm = 60.0 / float(np.median(np.diff(all_beat_times)))
-    else:
-        bpm = 120.0
+    bpm = 60.0 / float(np.median(np.diff(all_beat_times))) if len(all_beat_times) > 1 else 120.0
 
     return downbeats, round(bpm, 3)
 

@@ -21,7 +21,7 @@ Usage
 import argparse
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -147,7 +147,7 @@ def run(
         "beat_times":          [round(t, 4) for t in analysis["beat_times"]],
         "trim_offset_seconds": round(trim_offset, 4),
         "backend":             backend,
-        "timestamp_processed": datetime.now(timezone.utc).isoformat(),
+        "timestamp_processed": datetime.now(UTC).isoformat(),
     }
     meta_path = song_dir / "metadata.json"
     save_json(metadata, meta_path)

@@ -116,7 +116,7 @@ def main() -> None:
     else:
         to_promote = pending
 
-    for key, name, trim in to_promote:
+    for _key, name, trim in to_promote:
         append_label(name, trim)
         mp3_exists = any(args.songs_dir.glob("*.mp3")) if args.songs_dir.is_dir() else False
         if mp3_exists:

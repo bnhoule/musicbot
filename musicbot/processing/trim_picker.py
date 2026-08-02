@@ -7,7 +7,7 @@ and persists choices so re-runs skip already-decided songs.
 import json
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import librosa
@@ -26,7 +26,7 @@ PREVIEW_DURATION = 4.0  # seconds
 
 def load_trim_choices(path: Path = CHOICES_FILE) -> dict:
     if path.is_file():
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -42,7 +42,7 @@ def save_trim_choice(
     choices[song_key] = {
         "trim_sec": round(trim_sec, 4),
         "method": method,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(choices, f, indent=2, sort_keys=True)
@@ -64,10 +64,7 @@ def _play_preview(y, sr: int, start_sec: float) -> None:
     end_sample = int(min((start_sec + PREVIEW_DURATION) * sr,
                          y.shape[-1]))
 
-    if y.ndim == 1:
-        clip = y[start_sample:end_sample]
-    else:
-        clip = y[:, start_sample:end_sample].T
+    clip = y[start_sample:end_sample] if y.ndim == 1 else y[:, start_sample:end_sample].T
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         sf.write(tmp.name, clip, sr, subtype="PCM_24")
