@@ -193,3 +193,5 @@ needed — requires the annotated MP3s and the local Demucs `eval_cache/`).
 - Match BPM/key with a track library for automatic playlist building.
 - Feed Camelot codes into a harmonic mixing engine.
 
+
+<!-- fast-path verification -->
