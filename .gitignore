@@ -33,3 +33,8 @@ GMAT_Practice_Exam.pdf
 # Logs / scratch
 *.log
 chrome_console_scraper.js
+
+# Coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
