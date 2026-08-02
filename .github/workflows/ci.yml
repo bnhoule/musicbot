@@ -53,6 +53,9 @@ jobs:
       - name: Install Python deps (madmom needs Cython + numpy first)
         run: |
           pip install -r requirements-ci.txt
-          pip install Cython
+          # madmom builds from source with --no-build-isolation, so its build
+          # deps (setuptools/wheel/Cython, numpy from requirements) must be
+          # present in the environment first.
+          pip install setuptools wheel Cython
           pip install --no-build-isolation "madmom @ git+https://github.com/CPJKU/madmom"
       - run: pytest tests/benchmark -q -s
