@@ -18,7 +18,7 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 # Ensure musicbot/ is on the path when this script is run directly
@@ -107,7 +107,7 @@ def scan_songs(input_dir: str) -> dict[str, list[StemInfo]]:
     base = Path(input_dir)
 
     for meta_path in sorted(base.glob("*/metadata.json")):
-        with open(meta_path, "r", encoding="utf-8") as fh:
+        with open(meta_path, encoding="utf-8") as fh:
             meta = json.load(fh)
 
         song_dir = meta_path.parent
@@ -349,7 +349,7 @@ def _export_stack(
     output_base: str,
 ) -> None:
     """Write the current stack to stacks/<timestamp>/."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     stack_dir = Path(output_base) / "stacks" / ts
     stack_dir.mkdir(parents=True, exist_ok=True)
 
@@ -386,7 +386,7 @@ def _export_stack(
         "target_bpm": target_bpm,
         "target_key": target_key,
         "stems": manifest,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     with open(stack_dir / "stack.json", "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)

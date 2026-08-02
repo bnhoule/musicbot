@@ -128,7 +128,7 @@ def detect_madmom_groove(drums_path: Path, raw_path: Path) -> float:
 
     threshold = 0.55 * energies.max()
 
-    for i, (db, e) in enumerate(zip(downbeats, energies)):
+    for i, (db, e) in enumerate(zip(downbeats, energies, strict=True)):
         if e >= threshold:
             following = energies[i:i+3]
             if len(following) >= 2 and all(f >= threshold for f in following):

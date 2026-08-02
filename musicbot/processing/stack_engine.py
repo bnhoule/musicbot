@@ -243,18 +243,18 @@ def build_preview(
 
         tag = f"{name}_{cat}"
 
-        prepare_kwargs = dict(
-            stem_wav=stem_wav,
-            trim_sec=trim_sec,
-            source_bpm=source_bpm,
-            source_key=source_key,
-            target_bpm=target_bpm,
-            target_key=target_key,
-            work_dir=work_dir,
-            tag=tag,
-            max_duration_sec=max_dur,
-            loop_bars=loop_bars,
-        )
+        prepare_kwargs = {
+            "stem_wav": stem_wav,
+            "trim_sec": trim_sec,
+            "source_bpm": source_bpm,
+            "source_key": source_key,
+            "target_bpm": target_bpm,
+            "target_key": target_key,
+            "work_dir": work_dir,
+            "tag": tag,
+            "max_duration_sec": max_dur,
+            "loop_bars": loop_bars,
+        }
         slot_meta = {
             "name": name,
             "backend": backend or "auto",

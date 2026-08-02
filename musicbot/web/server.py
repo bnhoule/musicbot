@@ -1,5 +1,6 @@
 """FastAPI backend for the trim picker + stem stacker web app."""
 
+import contextlib
 import io
 import json
 import random
@@ -11,7 +12,7 @@ import time
 import uuid
 import zipfile
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import uvicorn
@@ -53,10 +54,8 @@ def _random_loop_start(
     for mname in ("lalal.json", "cache.json"):
         f = cache_dir / mname
         if f.is_file():
-            try:
+            with contextlib.suppress(Exception):
                 all_downbeats = json.loads(f.read_text()).get("all_downbeats", [])
-            except Exception:
-                pass
             break
 
     if not all_downbeats:
@@ -647,7 +646,7 @@ async def stack_preview(req: StackRequest):
     if not lib:
         raise HTTPException(400, "Stem library is empty")
 
-    for cat, name in req.slots.items():
+    for _cat, name in req.slots.items():
         if name and name not in lib:
             raise HTTPException(404, f"'{name}' not in stem library")
 
@@ -673,7 +672,7 @@ async def stack_preview(req: StackRequest):
         )
     except Exception as e:
         stack_jobs[stack_id] = {"status": "error", "error": str(e)}
-        raise HTTPException(500, f"Stack build failed: {e}")
+        raise HTTPException(500, f"Stack build failed: {e}") from e
 
     stack_jobs[stack_id] = {
         "status": "ready",
@@ -684,7 +683,7 @@ async def stack_preview(req: StackRequest):
     }
 
     stem_urls = {}
-    for cat, path in result["stem_paths"].items():
+    for cat, _path in result["stem_paths"].items():
         stem_urls[cat] = f"/api/stack/audio/{stack_id}/{cat}"
 
     return {
@@ -702,10 +701,7 @@ async def stack_audio(stack_id: str, stem: str):
     if not sj or sj["status"] != "ready":
         raise HTTPException(404, "Stack not found or not ready")
 
-    if stem == "mix":
-        path = sj["mix_path"]
-    else:
-        path = sj.get("stem_paths", {}).get(stem)
+    path = sj["mix_path"] if stem == "mix" else sj.get("stem_paths", {}).get(stem)
 
     if not path or not Path(path).is_file():
         raise HTTPException(404, f"Audio not found: {stem}")
@@ -720,7 +716,7 @@ async def stack_export(req: StackRequest):
     if not lib:
         raise HTTPException(400, "Stem library is empty")
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     export_dir = STACKS_DIR / ts
     export_dir.mkdir(parents=True, exist_ok=True)
 
@@ -760,7 +756,7 @@ async def stack_export(req: StackRequest):
             "target_bpm": req.target_bpm,
             "target_key": req.target_key,
             "stems": manifest_stems,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         with open(export_dir / "stack.json", "w") as f:
             json.dump(manifest, f, indent=2)
