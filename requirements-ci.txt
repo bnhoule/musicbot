@@ -1,0 +1,9 @@
+# Lean dependency set for CI — excludes torch/demucs (huge, not needed:
+# benchmark fixtures ship pre-rendered drums stems).
+numpy>=2.0
+scipy>=1.10.0
+librosa>=0.10.0
+soundfile>=0.12.1
+pyrubberband>=0.4.0
+requests>=2.31.0
+pytest>=8.0

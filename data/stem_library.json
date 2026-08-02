@@ -1,0 +1,112 @@
+{
+  "122 - Clear My Mind": {
+    "filename": "122 - Clear My Mind.mp3",
+    "trim_sec": 8.07,
+    "bpm": 122.4,
+    "analysis": {
+      "bpm": 122.28,
+      "key": "F# minor",
+      "camelot": "11A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/122 - Clear My Mind/stems"
+  },
+  "122 - Purple Line": {
+    "filename": "122 - Purple Line.mp3",
+    "trim_sec": 63.0662,
+    "bpm": 122.4,
+    "analysis": {
+      "bpm": 122.28,
+      "key": "G minor",
+      "camelot": "6A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/122 - Purple Line/stems"
+  },
+  "125 - Be Alone": {
+    "filename": "125 - Be Alone.mp3",
+    "trim_sec": 0.7344,
+    "bpm": 125.0,
+    "analysis": {
+      "bpm": 125.0,
+      "key": "B minor",
+      "camelot": "10A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/125 - Be Alone/stems"
+  },
+  "124 - Xanadu": {
+    "filename": "124 - Xanadu.mp3",
+    "trim_sec": 46.71,
+    "bpm": 125.0,
+    "analysis": {
+      "bpm": 125.0,
+      "key": "E minor",
+      "camelot": "9A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/124 - Xanadu/stems"
+  },
+  "124 - On The Beach - Kryder Remix": {
+    "filename": "124 - On The Beach - Kryder Remix.mp3",
+    "trim_sec": 0.0,
+    "bpm": 125.0,
+    "analysis": {
+      "bpm": 125.0,
+      "key": "F minor",
+      "camelot": "4A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/124 - On The Beach - Kryder Remix/stems"
+  },
+  "125 - Circles": {
+    "filename": "125 - Circles.mp3",
+    "trim_sec": 16.8394,
+    "bpm": 125.0,
+    "analysis": {
+      "bpm": 125.0,
+      "key": "E minor",
+      "camelot": "9A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/125 - Circles/stems"
+  },
+  "125 - Lift Me Up (feat. Carla Monroe) - Club Mix": {
+    "filename": "125 - Lift Me Up (feat. Carla Monroe) - Club Mix.mp3",
+    "trim_sec": 0.0,
+    "bpm": 125.0,
+    "analysis": {
+      "bpm": 125.0,
+      "key": "F minor",
+      "camelot": "4A"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/125 - Lift Me Up (feat. Carla Monroe) - Club Mix/stems",
+    "backends": {
+      "demucs": {
+        "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/125 - Lift Me Up (feat. Carla Monroe) - Club Mix/stems",
+        "stems": [
+          "bass",
+          "drums",
+          "other",
+          "vocals"
+        ]
+      }
+    }
+  },
+  "123 - Farewell To The Moon - PROFF Remix": {
+    "filename": "123 - Farewell To The Moon - PROFF Remix.mp3",
+    "trim_sec": 3.9,
+    "bpm": 122.4,
+    "analysis": {
+      "bpm": 122.28,
+      "key": "A major",
+      "camelot": "11B"
+    },
+    "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/123 - Farewell To The Moon - PROFF Remix/stems",
+    "backends": {
+      "demucs": {
+        "stems_dir": "/Users/brendanhoule/Desktop/MusicGenerator/cache/123 - Farewell To The Moon - PROFF Remix/stems",
+        "stems": [
+          "bass",
+          "drums",
+          "other",
+          "vocals"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "bpm": {
+    "hits": 15,
+    "n": 18
+  },
+  "kick": {
+    "baseline": {
+      "mae_ms": 10800.6,
+      "n": 18,
+      "within_500ms": 5,
+      "within_50ms": 5
+    },
+    "energy_jump": {
+      "mae_ms": 2977.4,
+      "n": 18,
+      "within_500ms": 5,
+      "within_50ms": 4
+    },
+    "madmom_groove": {
+      "mae_ms": 7933.2,
+      "n": 18,
+      "within_500ms": 3,
+      "within_50ms": 3
+    }
+  }
+}

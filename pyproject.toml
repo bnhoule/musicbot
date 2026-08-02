@@ -1,0 +1,32 @@
+[project]
+name = "musicbot"
+version = "0.1.0"
+description = "Automated music remix preparation: stem splitting, kick detection, trimming, rekeying, stacking"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+# "." lets tests import musicbot.*; "musicbot" lets internal absolute imports
+# (e.g. stack_engine's `from processing.rekey import ...`) resolve.
+pythonpath = [".", "musicbot"]
+testpaths = ["tests"]
+markers = [
+    "unit: pure-logic tests, no audio, milliseconds",
+    "synthetic: generated-audio DSP tests, seconds",
+    "benchmark: real-audio ear benchmark against hand labels (LFS fixtures)",
+]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = [
+    "musicbot/web/frontend",
+    "visual_scraper.py",
+    "full_auto_scraper.py",
+    "multi_section_scraper.py",
+]
+
+[tool.ruff.lint]
+# Default rule set (pycodestyle errors + pyflakes) — catches real bugs
+# without imposing style churn on the existing codebase.
+select = ["E4", "E7", "E9", "F"]

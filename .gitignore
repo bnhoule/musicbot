@@ -1,0 +1,35 @@
+# Python environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+musicbot/web/frontend/dist/
+
+# Large local artifacts (never committed — regenerable or personal audio)
+cache/
+processed/
+eval_cache/
+eval_samples/
+stacks/
+.stack_work/
+uploads/
+
+# OS noise
+.DS_Store
+
+# Unrelated scripts living in this folder (GMAT scraper)
+visual_scraper.py
+full_auto_scraper.py
+multi_section_scraper.py
+test_screenshots/
+GMAT_Practice_Exam.pdf
+
+# Logs / scratch
+*.log
+chrome_console_scraper.js
