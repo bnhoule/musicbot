@@ -1,0 +1,43 @@
+# CodeRabbit configuration — tuned for signal over noise.
+# This is a solo audio-DSP project: review for correctness bugs that would
+# silently degrade audio output, not for style or security theater.
+
+language: en-US
+
+reviews:
+  # "chill" = fewer, higher-confidence comments (vs "assertive")
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "musicbot/**"
+      instructions: |
+        This is audio DSP code. Prioritize, in order:
+        1. Unit mismatches: seconds vs samples vs librosa frames vs
+           milliseconds, especially values crossing function boundaries.
+        2. Raw vs normalized scales: librosa returns normalized envelopes
+           in some APIs and raw in others; thresholds computed in one scale
+           and applied in another are silent killers.
+        3. Channel layout: librosa loads (channels, samples); soundfile
+           writes (samples, channels). Scrutinize every transpose and
+           mono/stereo branch.
+        4. Hardcoded sample rates or sample counts that should scale by sr.
+        5. Dropped PCM_24 subtype or implicit resampling on writes.
+        Do NOT comment on: print-based logging (intentional), missing type
+        hints, missing docstrings, or security hardening.
+    - path: "tests/benchmark/**"
+      instructions: |
+        baseline.json is a quality ratchet. Flag any PR that loosens a
+        baseline value without a corresponding algorithm change that
+        justifies it.
+    - path: "musicbot/web/frontend/**"
+      instructions: |
+        Light-touch review only; this is a personal-use UI.
+
+chat:
+  auto_reply: true
