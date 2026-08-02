@@ -149,6 +149,43 @@ Only needed if you want to use `--backend lalal` instead of the default Demucs.
 2. Go to **Account → API** to find or generate your license key.
 3. The free tier processes a 30-second preview; a paid plan unlocks full tracks.
 
+## Testing & quality gates
+
+Three test layers, all enforced by CI on every pull request:
+
+```bash
+# Layer 1+2 — unit + synthetic audio tests (~3s)
+pytest tests/unit tests/synthetic
+
+# Layer 3 — ear benchmark on real labeled songs (~2min, needs LFS fixtures)
+pytest tests/benchmark
+
+# Lint
+ruff check .
+```
+
+**The ratchet:** `tests/benchmark/baseline.json` records the current kick
+detection accuracy (MAE, within-50ms, within-500ms per method) and BPM
+hit-rate against the hand-labeled ground truth in `data/kick_labels.csv`.
+Any change that makes these numbers worse fails CI. When you genuinely
+improve detection, raise the floor in the same PR:
+
+```bash
+pytest tests/benchmark --update-baseline
+```
+
+**Growing the benchmark:** picks you make in the web trim UI accumulate in
+`data/trim_choices.json`. Promote the ones you trust into the benchmark:
+
+```bash
+python musicbot/tools/promote_labels.py --list
+python musicbot/tools/promote_labels.py --promote "122 - Purple Line.mp3"
+```
+
+This appends to `kick_labels.csv` and regenerates the fixture clip
+(`musicbot/tools/make_bench_fixtures.py` rebuilds all clips from scratch if
+needed — requires the annotated MP3s and the local Demucs `eval_cache/`).
+
 ## Extending for DAW integration
 
 `metadata.json` is designed to be machine-readable so you can later:
