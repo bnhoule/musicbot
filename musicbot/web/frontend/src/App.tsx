@@ -32,8 +32,10 @@ function TrimPicker() {
     bpm: number;
     key: string;
     camelot: string;
+    key_alternatives?: string[];
   } | null>(null);
   const [trimSec, setTrimSec] = useState(0);
+  const [filename, setFilename] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const enterPicking = useCallback(async (jid: string) => {
@@ -48,6 +50,7 @@ function TrimPicker() {
   const handleFile = useCallback(async (file: File) => {
     try {
       setError(null);
+      setFilename(file.name);
       setState("processing");
       const resp = await uploadSong(file);
       setJobId(resp.job_id);
@@ -63,6 +66,7 @@ function TrimPicker() {
   const handleLibrarySelect = useCallback(async (cacheKey: string) => {
     try {
       setError(null);
+      setFilename(`${cacheKey}.mp3`);
       setState("processing");
       const resp = await loadFromLibrary(cacheKey);
       setJobId(resp.job_id);
@@ -92,6 +96,7 @@ function TrimPicker() {
             setAllDownbeats(data.all_downbeats ?? []);
             setBpm(data.bpm);
             setAnalysis(data.analysis);
+            if (j.filename) setFilename(j.filename);
             setState("picking");
             return;
           } else if (j.status === "error") {
@@ -135,6 +140,7 @@ function TrimPicker() {
     setAllDownbeats([]);
     setAnalysis(null);
     setTrimSec(0);
+    setFilename("");
     setError(null);
   };
 
@@ -179,6 +185,7 @@ function TrimPicker() {
           <ResultPanel
             trimSec={trimSec}
             downloadUrl={getDownloadUrl(jobId)}
+            filename={filename || job?.filename || ""}
             analysis={analysis}
             onReset={handleReset}
           />

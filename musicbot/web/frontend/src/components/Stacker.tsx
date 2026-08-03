@@ -5,6 +5,7 @@ import {
   stackShuffle,
   stackPreview,
   stackExportUrl,
+  submitTransformFeedback,
   type StemLibraryEntry,
   type StackPreviewResponse,
 } from "../api";
@@ -48,6 +49,9 @@ export default function Stacker() {
   const [targetBpm, setTargetBpm] = useState(128);
   const [targetKey, setTargetKey] = useState("A minor");
   const [preview, setPreview] = useState<StackPreviewResponse | null>(null);
+  // Per-slot transform vote: "good" | "bad" once submitted for the current preview
+  const [transformVotes, setTransformVotes] = useState<Record<string, "good" | "bad">>({});
+  const [transformBusy, setTransformBusy] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,10 +144,33 @@ export default function Stacker() {
         args.slotBackends, args.slotBpms, loopArg,
       );
       setPreview(resp);
+      setTransformVotes({});
     } catch (e) {
       setError(String(e));
     } finally {
       setBuilding(false);
+    }
+  };
+
+  const handleTransformVote = async (cat: string, verdict: "good" | "bad") => {
+    if (!preview) return;
+    const info = preview.slots_info[cat];
+    if (!info) return;
+    setTransformBusy(cat);
+    try {
+      await submitTransformFeedback({
+        category: cat,
+        verdict,
+        semitones: info.semitones ?? null,
+        stretch_ratio: info.stretch_ratio ?? null,
+        song: info.name,
+        stack_id: preview.stack_id,
+      });
+      setTransformVotes((prev) => ({ ...prev, [cat]: verdict }));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setTransformBusy(null);
     }
   };
 
@@ -545,6 +572,53 @@ export default function Stacker() {
                           : `${fmtFreq(slotFilters[cat]?.lp ?? LP_MAX)}Hz`}
                       </span>
                     </div>
+                    {(() => {
+                      const info = preview.slots_info[cat];
+                      if (!info) return null;
+                      const semi = info.semitones ?? 0;
+                      const ratio = info.stretch_ratio ?? 1;
+                      const shifted = Math.abs(semi) > 0 || Math.abs(ratio - 1) > 0.001;
+                      if (!shifted && !info.warning) return null;
+                      const voted = transformVotes[cat];
+                      return (
+                        <div className="slot-transform-feedback">
+                          <span className="slot-transform-meta">
+                            {semi !== 0 && `${semi > 0 ? "+" : ""}${semi} st`}
+                            {semi !== 0 && Math.abs(ratio - 1) > 0.001 && " · "}
+                            {Math.abs(ratio - 1) > 0.001 && `${ratio.toFixed(3)}×`}
+                          </span>
+                          {info.warning && (
+                            <span className="slot-transform-warn" title={info.warning}>
+                              past your limit
+                            </span>
+                          )}
+                          {voted ? (
+                            <span className={`slot-vote-done vote-${voted}`}>
+                              {voted === "good" ? "clean" : "artifacts"}
+                            </span>
+                          ) : (
+                            <span className="slot-vote-actions">
+                              <button
+                                className="btn-vote-mini btn-vote-good"
+                                disabled={transformBusy === cat}
+                                onClick={() => handleTransformVote(cat, "good")}
+                                title="Sounds clean"
+                              >
+                                Clean
+                              </button>
+                              <button
+                                className="btn-vote-mini btn-vote-bad"
+                                disabled={transformBusy === cat}
+                                onClick={() => handleTransformVote(cat, "bad")}
+                                title="Artifacts / degraded"
+                              >
+                                Artifacts
+                              </button>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

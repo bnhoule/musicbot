@@ -164,6 +164,10 @@ pytest tests/benchmark
 ruff check .
 ```
 
+**AI review:** every PR is reviewed by CodeRabbit (required `CodeRabbit`
+status check + comment threads must be resolved before merge) and Cursor
+Bugbot. Review rules live in `.coderabbit.yaml` and `.cursor/BUGBOT.md`.
+
 **The ratchet:** `tests/benchmark/baseline.json` records the current kick
 detection accuracy (MAE, within-50ms, within-500ms per method) and BPM
 hit-rate against the hand-labeled ground truth in `data/kick_labels.csv`.
@@ -174,17 +178,27 @@ improve detection, raise the floor in the same PR:
 pytest tests/benchmark --update-baseline
 ```
 
-**Growing the benchmark:** picks you make in the web trim UI accumulate in
-`data/trim_choices.json`. Promote the ones you trust into the benchmark:
+**Growing the benchmark from use:** every time you use the web UI, your ear
+feeds the gates — no separate labeling session required:
+
+| When you… | What gets logged | What it gates |
+|---|---|---|
+| Commit a trim pick | Implicit vote: did you accept the auto-pick? (`feedback.jsonl`) | Trim-ranker agreement ratchet |
+| Thumbs-up/down the detected key | Confirmed/corrected key → `key_labels.csv` | Key-detection accuracy ratchet |
+| Rate a stacked stem Clean/Artifacts | Transform params + verdict → learns `transform_limits.json` | Stacker warns before exceeding your limits |
+
+Promote hard trim cases (where you overrode the auto-pick) into the kick benchmark:
 
 ```bash
-python musicbot/tools/promote_labels.py --list
+python musicbot/tools/promote_labels.py --list   # sorted by disagreement
 python musicbot/tools/promote_labels.py --promote "122 - Purple Line.mp3"
 ```
 
-This appends to `kick_labels.csv` and regenerates the fixture clip
-(`musicbot/tools/make_bench_fixtures.py` rebuilds all clips from scratch if
-needed — requires the annotated MP3s and the local Demucs `eval_cache/`).
+After enough new labels, refresh the floor in the same PR:
+
+```bash
+pytest tests/benchmark --update-baseline
+```
 
 ## Extending for DAW integration
 
