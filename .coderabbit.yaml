@@ -11,6 +11,10 @@ reviews:
   high_level_summary: true
   poem: false
   review_status: false
+  # Surface review progress as a check/status so branch protection can
+  # require it; fail the status if the review itself errors out.
+  commit_status: true
+  fail_commit_status: true
   auto_review:
     enabled: true
     drafts: false
