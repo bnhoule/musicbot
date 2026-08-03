@@ -86,9 +86,10 @@ def main() -> None:
         if not labels:
             sys.exit(f"[error] No label found for song: {args.song}")
 
-    # Start from the existing manifest so single-song regeneration keeps others
+    # Full regenerations rebuild the manifest from kick_labels.csv so dropped
+    # songs disappear. Single-song mode preserves other entries.
     manifest: dict[str, dict] = {}
-    if manifest_path.is_file():
+    if args.song and manifest_path.is_file():
         with open(manifest_path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 manifest[row["song"]] = row
