@@ -1,0 +1,35 @@
+{
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax"],
+  "statusCheck": true,
+  "statusCommentsEnabled": true,
+  "triggerOnUpdates": true,
+  "shouldUpdateDescription": false,
+  "ignorePatterns": [
+    "musicbot/web/frontend/package-lock.json",
+    "musicbot/web/frontend/dist/**",
+    "tests/fixtures/**",
+    "*.flac",
+    "*.wav",
+    "*.mp3"
+  ],
+  "instructions": "Solo audio-DSP project (music remix prep). Prioritize silent correctness bugs over style.\n\n1. Unit mismatches: seconds vs samples vs librosa frames vs milliseconds across function boundaries.\n2. Raw vs normalized scales (onset envelopes, thresholds).\n3. Channel layout: librosa (channels, samples) vs soundfile (samples, channels).\n4. Hardcoded sample rates / window sizes that should scale with sr.\n5. Dropped PCM_24 subtype or implicit resampling on writes.\n6. Suspicious edits to tests/benchmark/baseline.json without a matching detection improvement.\n\nDo NOT comment on print-based logging, missing type hints, missing docstrings, or security hardening. Light touch on musicbot/web/frontend/**.",
+  "customContext": {
+    "files": [
+      {
+        "path": ".cursor/BUGBOT.md",
+        "description": "Project-specific review guidelines for audio DSP pitfalls"
+      }
+    ],
+    "rules": [
+      {
+        "scope": ["musicbot/processing/**", "musicbot/tools/**"],
+        "rule": "Flag any comparison of a raw-scale threshold against a librosa-normalized [0,1] envelope (or the reverse)."
+      },
+      {
+        "scope": ["tests/benchmark/**"],
+        "rule": "baseline.json is a quality ratchet — never loosen floors without an accompanying algorithm improvement in the same PR."
+      }
+    ]
+  }
+}
