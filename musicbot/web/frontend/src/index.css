@@ -1311,3 +1311,163 @@ body {
   border-radius: 6px;
   overflow: hidden;
 }
+
+/* Feedback votes — key (trim result) + transform (stacker) */
+.feedback-block {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.feedback-prompt {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.65rem;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-vote {
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-vote:hover {
+  border-color: var(--accent);
+}
+
+.btn-vote-good:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.btn-vote-bad:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.feedback-corrections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.feedback-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.feedback-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.btn-chip {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.feedback-error {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--error);
+}
+
+.feedback-done {
+  font-size: 0.85rem;
+  color: var(--success);
+  margin-bottom: 1.25rem;
+}
+
+.slot-transform-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.slot-transform-meta {
+  color: var(--text-dim);
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.slot-transform-warn {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.slot-vote-actions {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.btn-vote-mini {
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.btn-vote-mini:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.btn-vote-mini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.slot-vote-done {
+  margin-left: auto;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.slot-vote-done.vote-good {
+  color: var(--success);
+}
+
+.slot-vote-done.vote-bad {
+  color: var(--error);
+}

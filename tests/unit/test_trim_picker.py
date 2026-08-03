@@ -9,6 +9,7 @@ from musicbot.processing.trim_picker import (
     load_trim_choices,
     pick_trim_auto,
     save_trim_choice,
+    score_pick_agreement,
 )
 
 pytestmark = pytest.mark.unit
@@ -33,6 +34,34 @@ class TestPickTrimAuto:
         # max() keeps the first of equal keys — earlier candidate wins ties
         cands = [_cand(10.0, 100.0), _cand(20.0, 100.0)]
         assert pick_trim_auto(cands) == 10.0
+
+
+class TestScorePickAgreement:
+    def test_empty_candidates(self):
+        result = score_pick_agreement([], 10.0)
+        assert result["auto_pick_sec"] is None
+        assert result["agreed"] is False
+        assert result["n_candidates"] == 0
+
+    def test_agrees_when_human_takes_top_pick(self):
+        cands = [_cand(10.0, 40.0), _cand(43.6, 100.0), _cand(60.0, 85.0)]
+        result = score_pick_agreement(cands, 43.6)
+        assert result["agreed"] is True
+        assert result["auto_pick_sec"] == 43.6
+        assert result["chosen_rank"] == 1
+        assert result["auto_pick_delta_ms"] == 0.0
+
+    def test_disagrees_on_override(self):
+        cands = [_cand(10.0, 40.0), _cand(43.6, 100.0), _cand(60.0, 85.0)]
+        result = score_pick_agreement(cands, 10.0)
+        assert result["agreed"] is False
+        assert result["chosen_rank"] == 3  # lowest energy of the three
+        assert abs(result["auto_pick_delta_ms"] - 33600.0) < 1.0
+
+    def test_accepts_dict_candidates(self):
+        cands = [{"time_sec": 5.0, "energy_pct": 90.0}, {"time_sec": 1.0, "energy_pct": 50.0}]
+        result = score_pick_agreement(cands, 5.0)
+        assert result["agreed"] is True
 
 
 class TestChoicePersistence:

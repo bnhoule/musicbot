@@ -60,6 +60,41 @@ def semitone_distance(source_key: str, target_key: str) -> int:
     return diff
 
 
+def plausible_key_confusions(key_str: str) -> list[str]:
+    """Keys a detector most often mistakes for *key_str*, most likely first.
+
+    Krumhansl-Schmuckler correlation confuses a handful of specific
+    relationships far more than random keys: the relative major/minor
+    (identical pitch content), the neighbouring fifths (six of seven notes
+    shared), and the parallel major/minor (same root).  Offering these as
+    one-click corrections means a wrong-key vote costs no typing.
+    """
+    pc, mode = parse_key(key_str)
+    other_mode = "minor" if mode == "major" else "major"
+
+    def name(offset: int, m: str) -> str:
+        return f"{PITCH_CLASSES[(pc + offset) % 12]} {m}"
+
+    # Relative minor is 3 semitones down from major; relative major is 3 up from minor
+    relative = name(9, "minor") if mode == "major" else name(3, "major")
+
+    candidates = [
+        relative,
+        name(7, mode),           # dominant (up a fifth)
+        name(5, mode),           # subdominant (down a fifth)
+        name(0, other_mode),     # parallel major/minor
+    ]
+
+    # De-duplicate while preserving order, and never suggest the key itself
+    seen = {key_str}
+    out = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
 def rekey_audio(
     wav_path: str,
     semitones: int,

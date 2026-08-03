@@ -18,6 +18,7 @@ import soundfile as sf
 
 from processing.rekey import semitone_distance, rekey_audio
 from processing.tempo_match import stretch_audio
+from processing.transform_limits import check_transform
 
 # Preview mode: cap audio fed to rubberband at this many seconds.
 # Reduces rubberband time by 50-75% for typical 3-7 min stems.
@@ -255,6 +256,9 @@ def build_preview(
             "max_duration_sec": max_dur,
             "loop_bars": loop_bars,
         }
+        semitones = semitone_distance(source_key, target_key)
+        stretch_ratio = target_bpm / source_bpm if source_bpm else 1.0
+
         slot_meta = {
             "name": name,
             "backend": backend or "auto",
@@ -264,6 +268,9 @@ def build_preview(
             "trim_sec": trim_sec,
             "loop_bars": loop_bars,
             "loop_start_sec": trim_sec if loop_bars is not None else None,
+            "semitones": semitones,
+            "stretch_ratio": round(stretch_ratio, 4),
+            "warning": check_transform(cat, semitones, stretch_ratio),
         }
         tasks.append((cat, stem_wav, prepare_kwargs, slot_meta))
 

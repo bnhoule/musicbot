@@ -1,6 +1,7 @@
 """FastAPI backend for the trim picker + stem stacker web app."""
 
 import contextlib
+import csv
 import io
 import json
 import random
@@ -25,16 +26,19 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backends.demucs_separator import separate
-from processing.audio_analysis import analyze, trim_stems_to_onset
+from feedback import STAGE_KEY, STAGE_TRANSFORM, STAGE_TRIM, load_events, log_event
+from processing.audio_analysis import CAMELOT_MAP, analyze, trim_stems_to_onset
 from processing.madmom_beats import get_downbeats, rank_candidates, score_all_downbeats
+from processing.rekey import plausible_key_confusions
 from processing.stack_engine import (
     CATEGORIES,
     build_preview,
     mix_stems as engine_mix_stems,
     random_selection,
 )
-from processing.trim_picker import save_trim_choice
-from utils import build_song_dirs, parse_bpm_from_filename
+from processing.transform_limits import aggregate_limits, save_limits
+from processing.trim_picker import save_trim_choice, score_pick_agreement
+from utils import build_song_dirs, clean_song_name, parse_bpm_from_filename
 
 
 def _random_loop_start(
@@ -243,6 +247,23 @@ def _add_to_stem_library(job: dict, trim_sec: float) -> None:
 class PickRequest(BaseModel):
     job_id: str
     trim_sec: float
+
+
+class KeyFeedbackRequest(BaseModel):
+    filename: str
+    detected_key: str
+    detected_camelot: str = ""
+    verdict: str                        # "correct" | "wrong"
+    corrected_key: str | None = None    # required when verdict == "wrong"
+
+
+class TransformFeedbackRequest(BaseModel):
+    category: str                       # drums | bass | vocals | …
+    verdict: str                        # "good" | "bad"
+    semitones: float | None = None
+    stretch_ratio: float | None = None
+    song: str | None = None
+    stack_id: str | None = None
 
 
 class StackRequest(BaseModel):
@@ -458,14 +479,21 @@ async def get_candidates(job_id: str):
         raise HTTPException(404, "Job not found")
     if job["status"] != "ready":
         raise HTTPException(409, f"Job not ready: {job['status']}")
+    detected_key = job["analysis"]["key"]
+    try:
+        alternatives = plausible_key_confusions(detected_key)
+    except ValueError:
+        alternatives = []
+
     return {
         "candidates": job["candidates"],
         "all_downbeats": job.get("all_downbeats", []),
         "bpm": job["bpm"],
         "analysis": {
             "bpm": job["analysis"]["bpm"],
-            "key": job["analysis"]["key"],
+            "key": detected_key,
             "camelot": job["analysis"]["camelot"],
+            "key_alternatives": alternatives,
         },
     }
 
@@ -513,6 +541,23 @@ async def pick_trim(req: PickRequest):
         save_trim_choice(job["filename"], trim_sec, method="web")
         _add_to_stem_library(job, trim_sec)
 
+    # Every commit is an implicit vote on the candidate ranking: accepting the
+    # top-ranked pick endorses it, overriding it supplies the correct answer.
+    agreement = score_pick_agreement(job.get("candidates", []), trim_sec)
+    log_event(
+        STAGE_TRIM,
+        filename=fname,
+        song=clean_song_name(fname),
+        chosen_sec=round(trim_sec, 4),
+        bpm=job.get("bpm"),
+        **agreement,
+    )
+    if agreement["auto_pick_sec"] is not None:
+        verdict = "agreed" if agreement["agreed"] else "OVERRIDDEN"
+        print(f"[FEEDBACK] trim {verdict}: auto={agreement['auto_pick_sec']:.3f}s "
+              f"human={trim_sec:.3f}s  ({agreement['auto_pick_delta_ms']:+.0f}ms, "
+              f"rank={agreement['chosen_rank']})", flush=True)
+
     print(f"[PERF] ═══ Trim done  total={time.perf_counter()-t_total:.2f}s ═══\n", flush=True)
 
     job["trim_sec"] = trim_sec
@@ -523,6 +568,112 @@ async def pick_trim(req: PickRequest):
         "status": "trimmed",
         "trim_sec": trim_sec,
         "download_url": f"/api/download/{req.job_id}",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Feedback — your ear, wired back into the benchmarks
+# ---------------------------------------------------------------------------
+
+KEY_LABELS_FILE = DATA_DIR / "key_labels.csv"
+KEY_LABEL_FIELDS = ["Song", "Key", "Camelot", "Source"]
+
+
+def _append_key_label(song: str, key: str, camelot: str, source: str) -> None:
+    """Upsert a confirmed/corrected key into the ground-truth CSV."""
+    rows: dict[str, dict] = {}
+    if KEY_LABELS_FILE.is_file():
+        with open(KEY_LABELS_FILE, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                rows[row["Song"].strip()] = {
+                    field: (row.get(field) or "").strip() for field in KEY_LABEL_FIELDS
+                }
+
+    rows[song] = {"Song": song, "Key": key, "Camelot": camelot, "Source": source}
+
+    KEY_LABELS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(KEY_LABELS_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=KEY_LABEL_FIELDS)
+        writer.writeheader()
+        for name in sorted(rows):
+            writer.writerow(rows[name])
+
+
+@app.post("/api/feedback/key")
+async def feedback_key(req: KeyFeedbackRequest):
+    """Record a thumbs-up/down on detected key and grow the key ground truth."""
+    if req.verdict not in ("correct", "wrong"):
+        raise HTTPException(400, "verdict must be 'correct' or 'wrong'")
+    if req.verdict == "wrong" and not req.corrected_key:
+        raise HTTPException(400, "corrected_key is required when verdict is 'wrong'")
+
+    song = clean_song_name(req.filename)
+    truth = req.detected_key if req.verdict == "correct" else req.corrected_key
+
+    camelot = req.detected_camelot
+    if req.verdict == "wrong":
+        camelot = CAMELOT_MAP.get(truth, "")
+
+    _append_key_label(song, truth, camelot, source="web")
+    log_event(
+        STAGE_KEY,
+        filename=req.filename,
+        song=song,
+        detected_key=req.detected_key,
+        verdict=req.verdict,
+        corrected_key=req.corrected_key,
+    )
+    print(f"[FEEDBACK] key {req.verdict}: {song} detected={req.detected_key} "
+          f"truth={truth}", flush=True)
+
+    return {"status": "recorded", "song": song, "key": truth, "camelot": camelot}
+
+
+@app.post("/api/feedback/transform")
+async def feedback_transform(req: TransformFeedbackRequest):
+    """Record a thumbs-up/down on a rekeyed/stretched stem and relearn limits."""
+    if req.verdict not in ("good", "bad"):
+        raise HTTPException(400, "verdict must be 'good' or 'bad'")
+
+    log_event(
+        STAGE_TRANSFORM,
+        category=req.category,
+        verdict=req.verdict,
+        semitones=req.semitones,
+        stretch_ratio=req.stretch_ratio,
+        song=req.song,
+        stack_id=req.stack_id,
+    )
+
+    limits = aggregate_limits(load_events(STAGE_TRANSFORM))
+    save_limits(limits)
+
+    print(f"[FEEDBACK] transform {req.verdict}: {req.category} "
+          f"{req.semitones:+g} semitones @ {req.stretch_ratio}x"
+          if req.semitones is not None else
+          f"[FEEDBACK] transform {req.verdict}: {req.category}", flush=True)
+
+    return {"status": "recorded", "limits": limits.get(req.category, {})}
+
+
+@app.get("/api/feedback/summary")
+async def feedback_summary():
+    """Counts per stage plus the current learned transform limits."""
+    events = load_events()
+    counts: dict[str, int] = {}
+    for event in events:
+        stage = event.get("stage", "unknown")
+        counts[stage] = counts.get(stage, 0) + 1
+
+    trim_events = [e for e in events if e.get("stage") == STAGE_TRIM]
+    agreed = sum(1 for e in trim_events if e.get("agreed"))
+
+    return {
+        "counts": counts,
+        "trim_agreement": {"agreed": agreed, "total": len(trim_events)},
+        "transform_limits": aggregate_limits(
+            [e for e in events if e.get("stage") == STAGE_TRANSFORM]
+        ),
     }
 
 

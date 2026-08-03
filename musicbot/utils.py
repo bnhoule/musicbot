@@ -86,6 +86,16 @@ def parse_bpm_from_filename(filename: str) -> float | None:
     return None
 
 
+def clean_song_name(filename: str) -> str:
+    """Strip a leading BPM prefix and extension: '122 - Run Away.mp3' → 'Run Away'.
+
+    This is the canonical song identity used across the label files
+    (``kick_labels.csv``, ``key_labels.csv``) and benchmark fixtures.
+    """
+    stem = Path(filename).stem
+    return re.sub(r"^\d{2,3}\s*[-–—]\s*", "", stem).strip()
+
+
 def build_song_dirs(output_base: str, song_name: str, method_tag: str = "") -> tuple[Path, Path]:
     """Return (song_dir, stems_dir) for a given song and create them on disk.
 

@@ -19,6 +19,7 @@ export interface CandidatesResponse {
     bpm: number;
     key: string;
     camelot: string;
+    key_alternatives?: string[];
   };
 }
 
@@ -134,20 +135,58 @@ export interface ShuffleResponse {
   slots: Record<string, SlotInfo>;
 }
 
+export interface SlotPreviewInfo {
+  name: string;
+  backend: string;
+  original_bpm: number;
+  detected_bpm: number;
+  original_key: string;
+  trim_sec: number;
+  loop_bars: number | null;
+  loop_start_sec: number | null;
+  semitones?: number;
+  stretch_ratio?: number;
+  warning?: string | null;
+}
+
 export interface StackPreviewResponse {
   stack_id: string;
   mix_url: string;
   stem_urls: Record<string, string>;
-  slots_info: Record<string, {
-    name: string;
-    backend: string;
-    original_bpm: number;
-    detected_bpm: number;
-    original_key: string;
-    trim_sec: number;
-    loop_bars: number | null;
-    loop_start_sec: number | null;
-  }>;
+  slots_info: Record<string, SlotPreviewInfo>;
+}
+
+export async function submitKeyFeedback(payload: {
+  filename: string;
+  detected_key: string;
+  detected_camelot?: string;
+  verdict: "correct" | "wrong";
+  corrected_key?: string | null;
+}): Promise<{ status: string; key: string; camelot: string }> {
+  const res = await fetch("/api/feedback/key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function submitTransformFeedback(payload: {
+  category: string;
+  verdict: "good" | "bad";
+  semitones?: number | null;
+  stretch_ratio?: number | null;
+  song?: string | null;
+  stack_id?: string | null;
+}): Promise<{ status: string; limits: Record<string, unknown> }> {
+  const res = await fetch("/api/feedback/transform", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 }
 
 export async function stackShuffle(): Promise<ShuffleResponse> {

@@ -110,6 +110,68 @@ def pick_trim_auto(candidates: list[TrimCandidate]) -> float:
     return best.time_sec
 
 
+# ---------------------------------------------------------------------------
+# Agreement scoring — turns every human pick into an implicit vote on the ranker
+# ---------------------------------------------------------------------------
+
+AGREEMENT_TOLERANCE_MS = 50.0
+
+
+def _as_pairs(candidates) -> list[tuple[float, float]]:
+    """Normalise TrimCandidate objects or plain dicts to (time_sec, energy_pct)."""
+    pairs = []
+    for c in candidates:
+        if isinstance(c, dict):
+            pairs.append((float(c["time_sec"]), float(c.get("energy_pct", 0.0))))
+        else:
+            pairs.append((float(c.time_sec), float(c.energy_pct)))
+    return pairs
+
+
+def score_pick_agreement(
+    candidates,
+    chosen_sec: float,
+    tolerance_ms: float = AGREEMENT_TOLERANCE_MS,
+) -> dict:
+    """Compare the auto-pick against what the human actually chose.
+
+    Every trim the user commits is a free judgement on the ranking logic:
+    accepting the top-ranked candidate is a thumbs-up, overriding it is a
+    thumbs-down plus the correct answer.
+
+    Returns a dict with the auto-pick, the signed error in milliseconds,
+    whether they agree within *tolerance_ms*, and the energy rank of the
+    candidate the human chose (1 = highest energy, None = off-list).
+    """
+    pairs = _as_pairs(candidates)
+    if not pairs:
+        return {
+            "auto_pick_sec": None,
+            "auto_pick_delta_ms": None,
+            "agreed": False,
+            "chosen_rank": None,
+            "n_candidates": 0,
+        }
+
+    by_energy = sorted(pairs, key=lambda p: p[1], reverse=True)
+    auto_sec = by_energy[0][0]
+    delta_ms = (auto_sec - chosen_sec) * 1000.0
+
+    chosen_rank = None
+    for rank, (time_sec, _energy) in enumerate(by_energy, start=1):
+        if abs(time_sec - chosen_sec) * 1000.0 <= tolerance_ms:
+            chosen_rank = rank
+            break
+
+    return {
+        "auto_pick_sec": round(auto_sec, 4),
+        "auto_pick_delta_ms": round(delta_ms, 1),
+        "agreed": abs(delta_ms) <= tolerance_ms,
+        "chosen_rank": chosen_rank,
+        "n_candidates": len(pairs),
+    }
+
+
 def pick_trim_interactive(
     candidates: list[TrimCandidate],
     song_name: str,

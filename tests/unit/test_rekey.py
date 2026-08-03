@@ -2,7 +2,7 @@
 
 import pytest
 
-from musicbot.processing.rekey import parse_key, semitone_distance
+from musicbot.processing.rekey import parse_key, plausible_key_confusions, semitone_distance
 
 pytestmark = pytest.mark.unit
 
@@ -80,3 +80,17 @@ class TestSemitoneDistance:
 
     def test_flats_and_sharps_are_equivalent(self):
         assert semitone_distance("Bb minor", "C minor") == semitone_distance("A# minor", "C minor")
+
+
+class TestPlausibleKeyConfusions:
+    def test_relative_major_minor_is_first(self):
+        # A minor ↔ C major are relatives — the #1 Krumhansl confusion
+        assert plausible_key_confusions("A minor")[0] == "C major"
+        assert plausible_key_confusions("C major")[0] == "A minor"
+
+    def test_never_suggests_itself(self):
+        for key in ("F minor", "G major", "D# minor"):
+            assert key not in plausible_key_confusions(key)
+
+    def test_returns_up_to_four(self):
+        assert 1 <= len(plausible_key_confusions("E minor")) <= 4
