@@ -25,10 +25,14 @@ CSV but skipped for fixtures until you run the pipeline on them.
 import argparse
 import csv
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from feedback import STAGE_TRIM, load_events  # noqa: E402
+from utils import clean_song_name  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
@@ -38,10 +42,7 @@ CACHE_DIR = REPO_ROOT / "eval_cache"
 FIXTURE_TOOL = Path(__file__).parent / "make_bench_fixtures.py"
 
 
-def clean_song_name(filename: str) -> str:
-    """'122 - Purple Line.mp3' → 'Purple Line' (matches kick_labels.csv style)."""
-    stem = Path(filename).stem
-    return re.sub(r"^\d+\s*[-–—]\s*", "", stem).strip()
+LABEL_FIELDS = ["Song", "Kick Start (seconds)", "Verified"]
 
 
 def load_labeled_songs() -> set[str]:
@@ -56,20 +57,52 @@ def load_choices() -> dict:
         return json.load(f)
 
 
-def unpromoted_choices() -> list[tuple[str, str, float]]:
-    """Return (choice_key, clean_name, trim_sec) for picks not yet in the CSV."""
+def disagreement_by_song() -> dict[str, float]:
+    """Map clean song name -> |auto-pick − human pick| in ms, from the feedback log.
+
+    Songs where the ranker disagreed with you are the most valuable labels
+    to promote: they're the cases the benchmark can't currently see.
+    """
+    out: dict[str, float] = {}
+    for event in load_events(STAGE_TRIM):
+        name = clean_song_name(event.get("filename", ""))
+        delta = event.get("auto_pick_delta_ms")
+        if name and delta is not None:
+            # Keep the most recent judgement for each song
+            out[name] = abs(float(delta))
+    return out
+
+
+def unpromoted_choices() -> list[tuple[str, str, float, float | None]]:
+    """Return (choice_key, clean_name, trim_sec, disagreement_ms) for unpromoted picks.
+
+    Sorted by disagreement descending — biggest ranker misses first.
+    """
     labeled = load_labeled_songs()
+    disagreements = disagreement_by_song()
     out = []
     for key, entry in sorted(load_choices().items()):
         name = clean_song_name(key)
         if name.lower() not in labeled:
-            out.append((key, name, float(entry["trim_sec"])))
+            out.append((key, name, float(entry["trim_sec"]), disagreements.get(name)))
+    out.sort(key=lambda row: (row[3] is None, -(row[3] or 0.0)))
     return out
 
 
 def append_label(song_name: str, kick_sec: float) -> None:
-    with open(LABELS_FILE, "a", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow([song_name, kick_sec])
+    """Append a row, normalising the file to the full column set."""
+    rows = []
+    if LABELS_FILE.is_file():
+        with open(LABELS_FILE, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                rows.append({field: (row.get(field) or "").strip() for field in LABEL_FIELDS})
+
+    rows.append({"Song": song_name, "Kick Start (seconds)": f"{kick_sec}", "Verified": ""})
+
+    with open(LABELS_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=LABEL_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
     print(f"  + kick_labels.csv: {song_name},{kick_sec}")
 
 
@@ -102,9 +135,10 @@ def main() -> None:
         if not pending:
             print("  All web picks are already in kick_labels.csv")
             return
-        print(f"  {len(pending)} unpromoted pick(s):\n")
-        for key, name, trim in pending:
-            print(f"    {key:<55} → {name:<30} {trim:>9.3f}s")
+        print(f"  {len(pending)} unpromoted pick(s), biggest ranker disagreements first:\n")
+        for key, name, trim, disagreement in pending:
+            flag = f"  auto off by {disagreement:>7.0f}ms" if disagreement is not None else ""
+            print(f"    {key:<55} → {name:<30} {trim:>9.3f}s{flag}")
         print("\n  Promote with: --promote \"<choice key>\"  or  --promote-all")
         return
 
@@ -116,7 +150,7 @@ def main() -> None:
     else:
         to_promote = pending
 
-    for _key, name, trim in to_promote:
+    for _key, name, trim, _disagreement in to_promote:
         append_label(name, trim)
         mp3_exists = any(args.songs_dir.glob("*.mp3")) if args.songs_dir.is_dir() else False
         if mp3_exists:
